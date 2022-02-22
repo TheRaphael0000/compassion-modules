@@ -277,6 +277,19 @@ class ResPartner(models.Model):
             title = partner.with_context(lang='en_US').name
             partner.gmc_gender = title_mapping.get(title, unknown)
 
+    def parent_consent_change(self, parent_consent):
+        if parent_consent == "waiting":
+            user_id = self.env["res.config.settings"].get_param(f"zoom_attendee_{self.lang[:2]}_id")
+            self.activity_schedule(
+                "mail.mail_activity_data_todo",
+                summary=_("{} is waiting for the parent consent approval").format(self.name),
+                user_id=user_id,
+            )
+        elif parent_consent == "approved":
+            pass  # TODO : send email
+        elif parent_consent == "refused":
+            pass  # TODO : send email
+
     ##########################################################################
     #                              ORM METHODS                               #
     ##########################################################################
@@ -300,6 +313,10 @@ class ResPartner(models.Model):
 
         if "church_id" in vals:
             self.mapped("church_id").update_number_sponsorships()
+
+        parent_consent = vals.get("parent_consent")
+        if parent_consent:
+            self.parent_consent_change(parent_consent)
 
         notify_vals = [
             "firstname",
